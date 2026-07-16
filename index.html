@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Merchant Churn Risk Dashboard</title>
+  <meta name="description" content="CX AI-Proficiency dashboard tracking merchant churn risk signals including escalation spikes, silent disengagement, CSAT/NPS scores, unresolved ticket backlogs, and sentiment decline." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Header -->
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="header-brand">
+        <div class="brand-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+          </svg>
+        </div>
+        <div>
+          <h1 class="brand-name">ChurnRadar</h1>
+          <p class="brand-sub">Merchant Risk Intelligence</p>
+        </div>
+      </div>
+      <div class="header-meta">
+        <div class="header-stat" id="hstat-high">
+          <span class="hstat-value" id="count-high">—</span>
+          <span class="hstat-label">High Risk</span>
+        </div>
+        <div class="header-stat" id="hstat-medium">
+          <span class="hstat-value" id="count-medium">—</span>
+          <span class="hstat-label">Medium Risk</span>
+        </div>
+        <div class="header-stat" id="hstat-low">
+          <span class="hstat-value" id="count-low">—</span>
+          <span class="hstat-label">Low Risk</span>
+        </div>
+        <div class="header-stat">
+          <span class="hstat-value" id="count-total">—</span>
+          <span class="hstat-label">Total Merchants</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="main-content">
+
+    <!-- Controls Bar -->
+    <div class="controls-bar">
+      <div class="controls-left">
+        <div class="search-wrap">
+          <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input type="text" id="search-input" class="search-input" placeholder="Search merchants…" aria-label="Search merchants" />
+        </div>
+        <div class="filter-chips" role="group" aria-label="Filter by risk tier">
+          <button class="chip chip-active" data-filter="all" id="filter-all">All</button>
+          <button class="chip chip-high" data-filter="High" id="filter-high">High Risk</button>
+          <button class="chip chip-medium" data-filter="Medium" id="filter-medium">Medium Risk</button>
+          <button class="chip chip-low" data-filter="Low" id="filter-low">Low Risk</button>
+        </div>
+      </div>
+      <div class="controls-right">
+        <span class="sort-label">Sort by:</span>
+        <select class="sort-select" id="sort-select" aria-label="Sort merchants">
+          <option value="score-desc">Risk Score ↓</option>
+          <option value="score-asc">Risk Score ↑</option>
+          <option value="name-asc">Name A–Z</option>
+          <option value="tier-asc">Tier</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Dashboard Table -->
+    <div class="table-wrap">
+      <table class="merchant-table" id="merchant-table" aria-label="Merchant churn risk table">
+        <thead>
+          <tr>
+            <th class="col-merchant">Merchant</th>
+            <th class="col-plan">Plan</th>
+            <th class="col-score">Risk Score</th>
+            <th class="col-tier">Tier</th>
+            <th class="col-signals">Active Signals</th>
+            <th class="col-action">Recommended Next Step</th>
+            <th class="col-expand"></th>
+          </tr>
+        </thead>
+        <tbody id="merchant-tbody">
+          <!-- Populated by JS -->
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Empty State -->
+    <div class="empty-state hidden" id="empty-state">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      <p>No merchants match your current filters.</p>
+    </div>
+
+    <!-- Signal Legend -->
+    <div class="legend-section">
+      <h2 class="legend-title">Signal Legend &amp; Scoring</h2>
+      <div class="legend-grid">
+        <div class="legend-card" id="leg-escalation">
+          <div class="legend-badge leg-escalation-badge">+30</div>
+          <div class="legend-content">
+            <div class="legend-signal-name">🚨 Escalation Spike</div>
+            <div class="legend-desc">Unusual jump in escalated / high-severity tickets vs. baseline. Priority 1 — triggers immediate CSM call.</div>
+          </div>
+        </div>
+        <div class="legend-card" id="leg-silent">
+          <div class="legend-badge leg-silent-badge">+25</div>
+          <div class="legend-content">
+            <div class="legend-signal-name">🔇 Went Silent</div>
+            <div class="legend-desc">Last contact gap &gt; 2× merchant's own historical average gap. Priority 2 — proactive outreach.</div>
+          </div>
+        </div>
+        <div class="legend-card" id="leg-csat">
+          <div class="legend-badge leg-csat-badge">+20</div>
+          <div class="legend-content">
+            <div class="legend-signal-name">😞 Low CSAT/NPS</div>
+            <div class="legend-desc">CSAT avg &lt; 3.0 or NPS &lt; 0. Priority 3 — satisfaction follow-up.</div>
+          </div>
+        </div>
+        <div class="legend-card" id="leg-backlog">
+          <div class="legend-badge leg-backlog-badge">+15</div>
+          <div class="legend-content">
+            <div class="legend-signal-name">📋 Unresolved Backlog</div>
+            <div class="legend-desc">3+ open tickets accumulating without closure. Priority 4 — escalate to support lead.</div>
+          </div>
+        </div>
+        <div class="legend-card" id="leg-sentiment">
+          <div class="legend-badge leg-sentiment-badge">+10</div>
+          <div class="legend-content">
+            <div class="legend-signal-name">📉 Sentiment Decline</div>
+            <div class="legend-desc">Avg sentiment of recent tickets &lt; −0.2. Priority 5 — flag for relationship check-in.</div>
+          </div>
+        </div>
+        <div class="legend-card tier-legend-card" id="leg-tiers">
+          <div class="tier-chips-row">
+            <span class="tier-badge tier-high">High ≥50</span>
+            <span class="tier-badge tier-medium">Medium 25–49</span>
+            <span class="tier-badge tier-low">Low &lt;25</span>
+          </div>
+          <div class="legend-content">
+            <div class="legend-signal-name">Composite Tier Thresholds</div>
+            <div class="legend-desc">Tier is used for urgency sorting. The highest-priority active signal determines the recommended action.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Detail Drawer (slide-in panel) -->
+  <div class="drawer-overlay hidden" id="drawer-overlay" aria-hidden="true"></div>
+  <aside class="detail-drawer hidden" id="detail-drawer" aria-label="Merchant detail panel" role="complementary">
+    <div class="drawer-header">
+      <div>
+        <h2 class="drawer-merchant-name" id="drawer-name">—</h2>
+        <p class="drawer-merchant-meta" id="drawer-meta">—</p>
+      </div>
+      <button class="drawer-close" id="drawer-close" aria-label="Close detail panel">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+    <div class="drawer-body" id="drawer-body">
+      <!-- Populated by JS -->
+    </div>
+  </aside>
+
+  <script src="data.js"></script>
+  <script src="engine.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
